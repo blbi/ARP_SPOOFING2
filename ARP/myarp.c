@@ -20,12 +20,14 @@ int main(int argc, char *argv[]){
 
 	char *interface=argv[1];
 	
+	//set sender_ip, target_ip
 	struct sockaddr_in sender_ip;
 	struct sockaddr_in target_ip;
 
 	inet_aton(argv[2], &sender_ip.sin_addr); 
 	inet_aton(argv[3], &target_ip.sin_addr);
 
+	
 	pcap_t *pcd;
 	char *dev;
 	char errbuf[PCAP_ERRBUF_SIZE];
@@ -73,11 +75,12 @@ int main(int argc, char *argv[]){
 	}
 //====================================================
 
-
+	//set ether header
 	memcpy(ETH->ether_dhost,"\xff\xff\xff\xff\xff\xff",6);
 	memcpy(ETH->ether_shost,my_mac,6);
 	ETH->ether_type = ntohs(ETHER_ARP);
 
+	//set arp header
 	u_int8_t broadcast[ETH_ALEN] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 	
 	arph.arp_hrd = htons(ARPHRD_ETHER);
@@ -90,6 +93,7 @@ int main(int argc, char *argv[]){
 	memcpy(arph.arp_tha, broadcast, ETH_ALEN);
 	memcpy(arph.arp_tpa, &target_ip.sin_addr, 4);
  
+	//set packet
 	memcpy(packet,ETH,sizeof(struct ether_header));
 	memcpy(packet+14, &arph, sizeof(struct ether_arp));
 
