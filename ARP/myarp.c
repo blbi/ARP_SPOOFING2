@@ -55,8 +55,10 @@ int main(int argc, char *argv[]){
 
 	u_int8_t my_mac[ETH_ALEN];
 	memcpy(my_mac, ifr.ifr_hwaddr.sa_data, ETH_ALEN);
-	close(fd);
 
+	
+
+	close(fd);
 
 
  //=====================================================
@@ -73,12 +75,9 @@ int main(int argc, char *argv[]){
 	}
 //====================================================
 
-//	ethh->dest_addr = malloc
 	memcpy(ETH->ether_dhost,"\xff\xff\xff\xff\xff\xff",6);
 	memcpy(ETH->ether_shost,my_mac,6);
 
-//	ethh->dest_addr = "\xff\xff\xff\xff\xff\xff";				
-//	ethh->src_addr = my_mac;
 
 
 
@@ -99,6 +98,7 @@ int main(int argc, char *argv[]){
 	arph.arp_pln = 0x04;
 	arph.arp_op = htons(ARPOP_REQUEST);
 	memcpy(arph.arp_sha, my_mac, ETH_ALEN);
+//	arph.arp_spa = my_ip.s_addr;
 	memcpy(arph.arp_spa, &my_ip.s_addr, 4);
 //	memcpy(arph.arp_spa, &sender_ip.sin_addr, 4);
 	memcpy(arph.arp_tha, broadcast, ETH_ALEN);
@@ -110,25 +110,21 @@ int main(int argc, char *argv[]){
 
 
 	pcap_sendpacket(pcd, packet, 42);
-//=====================================================
 
 	u_char temp[4];
 	struct pcap_pkthdr *header;
 	const u_char *re_pkt_data;
 	int res=0;
+//	char target_mac[ETH_ALEN];
 	uint8_t target_mac[6];
-	printf("DDDDDDDDDDDDd");	
 	while((res=pcap_next_ex(pcd, &header, &re_pkt_data))>=0){
 		if(res=0) continue;
 		struct ether_header *rethh = (struct ether_header *)re_pkt_data;
 		struct ether_arp *rarp = (struct ether_arp *)(re_pkt_data+14);
-		printf("CCCCCCCCCCCCCC");
 		
 		if(rarp->arp_op == htons(ARPOP_REPLY)){
-			printf("BBBBBBBBBBBBb");
 			memmove(temp, &target_ip.sin_addr.s_addr, 4);			
 			 if (!memcmp(rarp->arp_spa,temp,4)){
-				printf("TEASDASDKSALDKASLDKSLDKALSDKALDKLSADKASLDKSALDK");
 				
 				memmove(target_mac, rarp->arp_sha, 6);
 				break;
